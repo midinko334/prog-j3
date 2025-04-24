@@ -5,8 +5,11 @@
 
 void HandleTCPClient(int clntSocket)
 {
-  char  echoBuffer[RCVBUFSIZE];  /* エコー文字列のバッファ */
+  char  echoBuffer[RCVBUFSIZE+1];  /* エコー文字列のバッファ */
   int  recvMsgSize;  /* 受信メッセージのサイズ */
+
+  echoBuffer[RCVBUFSIZE]=0;
+  for(int i=0;echoBuffer[i]!=0;i++) echoBuffer[i]=0;
 
   /* クライアントからの受信メッセージ */
   if ((recvMsgSize = recv(clntSocket, echoBuffer, RCVBUFSIZE, 0)) < 0) {
@@ -27,5 +30,6 @@ void HandleTCPClient(int clntSocket)
     }
   }
 
+  printf("message:%s\n",echoBuffer);
   close(clntSocket);  /* クライアントソケットをクローズする */
 }
