@@ -66,8 +66,10 @@ int  main(void)
   do {
     int  n;                       /* 読み込まれたバイト数  */
 
+    printf("#send:\n");
     n = read(0, buf, BUF_LEN);    /* 標準入力0 から読む     */
     write(soc, buf, n);           /* ソケットsoc に書き出す */
+    printf("#reception:\n");
     n = read(soc, buf, BUF_LEN);  /* ソケットsoc から読む   */
     write(1, buf, n);             /* 標準出力1 に書き出す   */
   } while (strncmp(buf,"quit",4) != 0);         /* 終了判定 */
