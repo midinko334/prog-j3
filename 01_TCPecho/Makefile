@@ -14,4 +14,4 @@ TCPECLIENT : $(CLIENT_O)
 	gcc -c $>
 
 clean :
-	rm -f $(BIN) $(SERVER_O) $(CLIENT_O)
+	rm -f $(BIN)
