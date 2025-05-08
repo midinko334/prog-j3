@@ -27,16 +27,6 @@ int  main(void)
   int  soc_waiting;       /* listenするソケット   */
   int  soc;               /* 送受信に使うソケット */
   char  buf[BUF_LEN];     /* 送受信のバッファ     */
-  char  ubuf[10];
-  char username[11];
-  char input[8];
-  int l,l2;
-  for(int i=0;i<11;i++) username[i]=0;
-  for(int i=0;i<8;i++) input[i]=0;
-  printf("your name(maxlength=8):\n");
-  scanf("%s",input);  /* ソケットsoc から読む   */
-  sprintf(username,"[%s]",input);
-  for(l=0;username[l]!=0;l++);
 
   /* サーバ(自分)のアドレスを sockaddr_in 構造体に格納  */
   memset((char *)&me, 0, sizeof(me));
@@ -71,23 +61,16 @@ int  main(void)
 
   /* こちらから先 */
   write(1, "Go ahead!\n", 10);
-  read(soc, &l2, 1);
-  write(soc, &l, 1);
 
   /* 通信のループ */
   do {
     int  n;                       /* 読み込まれたバイト数  */
-    int  m;
 
     printf("#send:\n");
     n = read(0, buf, BUF_LEN);    /* 標準入力0 から読む     */
-    write(soc, username, l);           /* ソケットsoc に書き出す */
     write(soc, buf, n);           /* ソケットsoc に書き出す */
     if(strncmp(buf,"quit",4) == 0) break;
-
-    m = read(soc, ubuf, l2);  /* ソケットsoc から読む   */
     printf("#reception:\n");
-    write(1, ubuf, m);             /* 標準出力1 に書き出す   */
     n = read(soc, buf, BUF_LEN);  /* ソケットsoc から読む   */
     write(1, buf, n);             /* 標準出力1 に書き出す   */
   } while (strncmp(buf,"quit",4) != 0);         /* 終了判定 */
