@@ -69,6 +69,7 @@ int  main(void)
     printf("#reception:\n");
     n = read(soc, buf, BUF_LEN); /* ソケットsoc から読む   */
     write(1, buf, n);            /* 標準出力1 に書き出す   */
+    if(strncmp(buf,"quit",4) == 0) break;
     printf("#send:\n");
     n = read(0, buf, BUF_LEN);   /* 標準入力0 から読む     */
     write(soc, buf, n);          /* ソケットsoc に書き出す */

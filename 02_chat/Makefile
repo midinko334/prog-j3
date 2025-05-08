@@ -14,4 +14,4 @@ CLIENT : $(CLIENT_O)
 	gcc -c $>
 
 clean :
-	rm -f $(BIN)
+	rm -f $(BIN) %.o
