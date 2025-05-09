@@ -30,11 +30,11 @@ int  main(void)
   struct sockaddr_in  server;      /* サーバ(相手)のアドレス */
   int  soc;                        /* ソケットのディスクリプタ */
   char  hostname[] = "localhost";  /* サーバ(相手)のホスト名 */
-  char  buf[BUF_LEN];              /* 送受信のバッファ  */
-  char  ubuf[10];
+  char  dbuf[BUF_LEN-10];              /* 送受信のバッファ  */
+  char  buf[BUF_LEN];
   char  username[11];
   char input[8];
-  int l,l2;
+  int l;
   for(int i=0;i<11;i++) username[i]=0;
   for(int i=0;i<8;i++) input[i]=0;
   printf("your name(maxlength=8):\n");
@@ -71,25 +71,24 @@ int  main(void)
 
   /* 相手が先 */
   write(1, "Wait\n", 5);
-  write(soc, &l, 1);
-  read(soc, &l2, 1);
-
+ 
   /* 通信のループ */
   do {
     int  n;                      /* 読み込まれたバイト数  */
-    int  m;
 
-    m = read(soc, ubuf, l2); /* ソケットsoc から読む   */
+    n = read(soc, buf, BUF_LEN);  /* ソケットsoc から読む   */
     printf("#reception:\n");
-    write(1, ubuf, m);            /* 標準出力1 に書き出す   */
-    n = read(soc, buf, BUF_LEN); /* ソケットsoc から読む   */
-    write(1, buf, n);            /* 標準出力1 に書き出す   */
+    write(1, buf, n);             /* 標準出力1 に書き出す   */
     if(strncmp(buf,"quit",4) == 0) break;
 
     printf("#send:\n");
-    n = read(0, buf, BUF_LEN);   /* 標準入力0 から読む     */
-    write(soc, username, l);          /* ソケットsoc に書き出す */
-    write(soc, buf, n);          /* ソケットsoc に書き出す */
+    n = read(0, dbuf, BUF_LEN-10);    /* 標準入力0 から読む     */
+    sprintf(buf,"%s%s",username,dbuf);
+    if(strncmp(dbuf,"quit",4) == 0){
+      write(soc, dbuf, n);
+      break;
+    }
+    else write(soc, buf, n+l);           /* ソケットsoc に書き出す */
   } while(strncmp(buf, "quit" ,4) != 0);        /* 終了判定 */
 
   /* ソケットを閉じる */
