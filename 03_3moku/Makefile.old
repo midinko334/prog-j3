@@ -6,7 +6,7 @@
 #*         Amender:  Yasuyuki SAITO          */
 #*********************************************/
 
-MYLIBDIR =  ./mylib
+MYLIBDIR =  ../mylib
 
 MYLIB    =  $(MYLIBDIR)/mylib.a
 
@@ -22,22 +22,19 @@ clean:
 	rm -f $(BIN) *.o *~
 
 
-server.mod.o \
-client.mod.o \
-goban.mod.o: \
-		goban.mod.h
+server.o \
+client.o \
+goban.o: \
+		goban.h
 
 
 
 server: \
-		server.mod.o \
-		goban.mod.o
+		server.o \
+		goban.o
 	gcc -o $@  $^  $(MYLIB)
 
 client: \
-		client.mod.o \
-		goban.mod.o
+		client.o \
+		goban.o
 	gcc -o $@  $^  $(MYLIB)
-
-%.o : %.mod.c
-	gcc -c $>
