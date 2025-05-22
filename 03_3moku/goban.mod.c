@@ -49,7 +49,7 @@ void  goban_init(int  soc,
 void  goban_show(void)
 {
   int  i;
-
+  system("clear");
   for (i = 0;  i < 6;  i++) {
     printf("%s\n", goban_plane[i]);
   }

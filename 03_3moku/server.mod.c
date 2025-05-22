@@ -15,9 +15,16 @@ int  main(void)
   int  soc;                /* ソケットのディスクリプタ */
   char  my_stone   = 'o';  /* 自分の石                 */
   char  peer_stone = 'x';  /* 相手の石                 */
+  int  iportno;      /* 後手(サーバ)のport */
+  char  dum;	/* scanfの改行消す */
+  in_port_t  portno;	 /* 後手(サーバ)のport */
+
+  printf("Input server's Port: ");
+  scanf("%d%c",&iportno,&dum);
+  portno=(in_port_t)iportno;
 
   /* 接続受付完了まで */
-  soc = setup_server(PORT);
+  soc = setup_server(portno);
   if (soc == -1) {
     exit(1);
   }
