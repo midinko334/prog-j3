@@ -6,7 +6,7 @@
 #define HIGH 1
 #define LOW  0
 #define LEDPIN 17
-#define LOOPCOUNT 10000
+#define LOOPCOUNT 100
  
 int main()
 {
@@ -26,13 +26,18 @@ int main()
  
 	t = 0;
 	while(t < LOOPCOUNT){
+	    for(int j=0;j<i;j++){
 		gpio_write(pd,LEDPIN,HIGH);
-		usleep(i*1000);
+		usleep(1000);
+		}
+	    for(int j=0;j<9-i;j++){
 		gpio_write(pd,LEDPIN,LOW);
-		usleep((9-i)*1000);
+		usleep(1000);
+		}
 		t++;
 	}
  
+	gpio_write(pd,LEDPIN,LOW);
 	pigpio_stop(pd);
  
 	return 0;
