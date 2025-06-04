@@ -37,9 +37,9 @@ void *thread(void *k){
 	}
  
 	gpio_write(pd,LEDPIN-l,LOW);
-	usleep(1000);
+	usleep(2000);
 	pigpio_stop(pd);
-
+	usleep(2000);
 	exit(1);
 
 }
