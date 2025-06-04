@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <pigpiod_if2.h>
+#include <pthread.h>
  
 #define HIGH 1
 #define LOW  0
@@ -37,14 +38,13 @@ void *thread(void *k){
  
 	gpio_write(pd,LEDPIN-l,LOW);
 	pigpio_stop(pd);
- 
+
+	exit(1);
 
 }
 
 int main()
 {
-
-	pthread_t th[THREAD];
 
 	int i[THREAD*2];
 	for(int j=0;j<THREAD;j++) i[j]=-1;
@@ -63,7 +63,7 @@ int main()
 	}
 
 	for (int j=0;j<THREAD;j++) {
-		pthread_join(&th[j], NULL);
+		pthread_join(th[j], NULL);
 	}
 
 	return 0;
