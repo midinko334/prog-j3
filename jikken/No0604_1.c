@@ -43,6 +43,9 @@ void *thread(void *k){
 
 int main()
 {
+
+	pthread_t th[THREAD];
+
 	int i[THREAD*2];
 	for(int j=0;j<THREAD;j++) i[j]=-1;
 	pthread_t th[THREAD];
@@ -57,6 +60,10 @@ int main()
 
 	for (int j=0;j<THREAD;j++) {
 		pthread_create(&th[j], NULL, thread, (void*)&i[j*2]);
+	}
+
+	for (int j=0;j<THREAD;j++) {
+		pthread_join(&th[j], NULL);
 	}
 
 	return 0;
