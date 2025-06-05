@@ -3,15 +3,15 @@
 
 int main(){
 
-  char せんてんつ[256][256];
+  char word[256][256];
   char **L;
-  for(int k=0;k<256;k++) for(int j=0;j<256;j++) せんてんつ[k][j]=0;
+  for(int k=0;k<256;k++) for(int j=0;j<256;j++) word[k][j]=0;
   char c=0;
   int i=0;
   printf("input:");
   for(i=0;i<256 && c!='\n';){
-    scanf("%s%c",せんてんつ[i],&c);
-    for(int j=0;j<256 && せんてんつ[i][j]!=0;j++) if((せんてんつ[i][j]>='a'&&せんてんつ[i][j]<='z')||(せんてんつ[i][j]>='A'&&せんてんつ[i][j]<='Z')){
+    scanf("%s%c",word[i],&c);
+    for(int j=0;j<256 && word[i][j]!=0;j++) if((word[i][j]>='a'&&word[i][j]<='z')||(word[i][j]>='A'&&word[i][j]<='Z')){
       i++;
       break;
     }
@@ -25,15 +25,20 @@ int main(){
   int flag=0,n=0;
   for(int k=0;k<i;k++){
     flag=1;
-    for(n=せんてんつ[k][0]%i;L[n][0]!=0;n++){
+    for(n=word[k][0]%i;L[n][0]!=0;n++){
       int jflag=0;
-      for(int j=0;j<256;j++) if(せんてんつ[k][j]!=L[n][j]) jflag=1;
+      for(int j=0;j<256;j++) if(word[k][j]!=L[n][j]) jflag=1;
       if(!jflag) flag=0;
+      if(n+1>=i) n=-1;
     }
-//    printf("%d",n);
+/*
+    printf("%d",n);
+/**/
     if(flag){
-//	printf("%c,",せんてんつ[k][0]);
-	for(int j=0;j<256&&せんてんつ[n][j]!=0;j++) L[n][j]=せんてんつ[k][j];
+/*
+	printf("%c,",word[k][0]);
+/**/
+	for(int j=0;j<256&&word[n][j]!=0;j++) L[n][j]=word[k][j];
     }
   }
 
