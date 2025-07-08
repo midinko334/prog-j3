@@ -25,10 +25,10 @@
 #define MAX_Y	20
 
 /* 移動キーの割り当て */
-#define NORTH 'k'
-#define SOUTH 'j'
-#define EAST  'l'
-#define WEST  'h'
+#define NORTH 'w'
+#define SOUTH 's'
+#define EAST  'd'
+#define WEST  'a'
 #define QUIT  'q'
 
 
@@ -55,7 +55,7 @@ static void  show(PLAYER *who);
 static int   update(PLAYER *who, int c);
 static int   interpret(PLAYER *who);
 static void  die();
-
+unsigned int startime;
 
 /*  session モジュールの初期化  */
 void  session_init(int  soc,
@@ -92,13 +92,17 @@ void  session_init(int  soc,
 
   me.x=rand()%(MAX_X-MIN_X+1)+MIN_X;
   me.y=rand()%(MAX_Y-MIN_Y+1)+MIN_Y;
-  write(session_soc, buf, BUF_LEN);  /* 更新データを送る */
 
-  read(session_soc,buf,BUF_LEN); /* ソケットから入力  */
+  hide(&me);                /* 自分の姿を隠す         */
+  update(&me, ' ');    /* 状態を更新             */
+  show(&me);                /* 自分の姿を現す         */
+  write(session_soc, buf, BUF_LEN);  /* 更新データを送る */
+  read(session_soc, buf, BUF_LEN); /* ソケットから入力  */
   hide(&peer);              /* 相手の姿を隠す         */
   interpret(&peer);  /* 相手の状態の更新       */
   show(&peer);              /* 相手の姿を現す         */
 
+  startime=(unsigned int)time(NULL);
 
   /* 端末設定 */
   cbreak();
@@ -135,6 +139,11 @@ void  session_loop()
       if (flag == 0) {  /* ループ抜け出し判定  */
 	break;
       }
+      if (flag == 2) {
+	die();
+	printf("鬼の勝利\n");
+	exit(1);
+      }
     }
 
     /*  ソケットにデータありか？ */
@@ -146,6 +155,17 @@ void  session_loop()
       if (flag == 0) {  /* ループ抜け出し判定  */
 	break;
       }
+      if (flag == 2) {
+	die();
+	printf("鬼の勝利\n");
+	exit(1);
+      }
+    }
+
+    if((unsigned int)time(NULL)-startime>30){
+      die();
+      printf("逃げの勝利\n");
+      exit(1);
     }
 
   }
@@ -208,6 +228,12 @@ static int  update(PLAYER *who, int c)
   /* 更新された位置データを送信用文字列に変換する */
   sprintf(buf, "%d %d\n", who->x, who->y);
 
+  /*もし捕まったら*/
+  if(me.x==peer.x&&me.y==peer.y){
+    return 2;
+  }
+
+
   return 1;
 }
 
@@ -217,6 +243,11 @@ static int  interpret(PLAYER *who)
   /* もし相手が終了を希望したら */
   if (buf[0] == 'q') {
     return 0;
+  }
+
+  /*もし捕まったら*/
+  if(me.x==peer.x&&me.y==peer.y){
+    return 2;
   }
 
   /* 受信文字列から位置データに変換する。 */

@@ -24,9 +24,12 @@ int  main(int argc,char *argv[])
     exit(EXIT_FAILURE);
   }
   soc = setup_client(argv[1],PORT);
+  if (soc == -1) {
+    exit(1);
+  }
 
   /* セッションモジュールの初期化 */
-  session_init(soc, 'o', 1, 1, 'x', 10, 10);
+  session_init(soc, 'x', 10, 10, 'o', 1, 1);
 
   /* セッションのループ */
   session_loop();
