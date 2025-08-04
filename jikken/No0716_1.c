@@ -30,11 +30,7 @@ const int digits[PATTERN+1][8] = {
   {0,0,0,0,0,0,0,0}  // reset
 };
 
-int main(void){
-  saikoro();
-}
-
-int saikoro(void) {
+void *thread(void *k){
 
 	int pd[8];
 	int id,state,count,quit;
@@ -72,7 +68,8 @@ int saikoro(void) {
       if(quit>2000){
 	for(int t=0;t<8;t++) gpio_write(pd[t],t+DEFPIN,digits[PATTERN][t]);
         for(int i=0;i<8;i++) pigpio_stop(pd[i]);
-        return 0;
+	usleep(2000);
+	pthread_exit((void *)0);
       }
       if(flag%2==0) num++;
       if(flag%2) for(int t=0;t<8;t++) gpio_write(pd[t],t+DEFPIN,digits[num%6][t]);
@@ -82,4 +79,10 @@ int saikoro(void) {
   }
 
   //この部分には到達しない
+}
+
+int main(void){
+  pthread_t th[THREAD];
+  pthread_create(&th[j], NULL, thread, (void*)&i[j*2]);
+  pthread_join(th[j], NULL);
 }
