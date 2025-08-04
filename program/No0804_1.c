@@ -9,22 +9,18 @@
 
 int search(int array[],int leng,int S,int flag[]){
 
-  int suc=0,newflag[LENGTH];
-  for(int i=0;i<LENGTH;i++) newflag[i]=flag[i];
-
-  for(int i=leng+1;i<LENGTH;i++){
+  for(int i=leng;i<LENGTH;i++){
 //    printf("check%d/%d:%d,%d\n",leng,i,array[i],S);
     if(array[i]==S){
       for(int j=0;j<i;j++){
 	if(flag[j]==1) printf("%d+",array[j]);
       }
       printf("%d\n",array[i]);
-      break;
     }
     else if(array[i]<S){
-      newflag[i]=1;
-      suc=search(array,i,S-array[i],newflag);
-      newflag[i]=0;
+      flag[i]=1;
+      search(array,i+1,S-array[i],flag);
+      flag[i]=0;
     }
 
   }
