@@ -4,6 +4,26 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <pigpiod_if2.h>
+#include <unistd.h>
+#include <pthread.h>
+
+int pd,qflag;
+pthread_t p1;
+char ans;
+int SEG_PINS[8] = {5,6,13,19,12,16,20,21};
+int DIGIT_PINS[4] = {4,17,27,22};
+int DIGIT_CODE[10][8] = {
+  {0,0,0,0,0,0,1,1},//0
+  {1,0,0,1,1,1,1,1},//1
+  {0,0,1,0,0,1,0,1},//2
+  {0,0,0,0,1,1,0,1},//3
+  {1,0,0,1,1,0,0,1},//4
+  {0,1,0,0,1,0,0,1},//5
+  {0,1,0,0,0,0,0,1},//6
+  {0,0,0,1,1,1,1,1},//7
+  {0,0,0,0,0,0,0,1},//8
+  {0,0,0,0,1,0,0,1} //9
+};
 
 // コンパイルと実行方法
 //  gcc -Wall -pthread -o dht11 dht11.c -lpigpiod_if2 -lrt
@@ -12,7 +32,7 @@
 // 一旦、デーモンが起動すれば、プログラムを実行するだけ
 
 // DHT11 が接続されているピン番号を定義すること
-#define DHT11PIN 27
+#define DHT11PIN 26
 
 // バイトデータの並び順
 #define HUMIUPPER 0
@@ -36,21 +56,97 @@
 
 // エッジ検出時に検出時間を格納する構造体の型宣言
 typedef struct {
-  unsigned int timedata[MAXEDGECOUNT]; //時間を記録するためのバッファ
-  int p; // バッファポインタ
+ unsigned int timedata[MAXEDGECOUNT]; //時間を記録するためのバッファ
+ int p; // バッファポインタ
 } tdata;
 
 // プロトタイプ宣言
 int bit_trans(tdata *td, int ofs);
 void edge_detection(int pd, unsigned int gpio, unsigned int level, unsigned int tick, void* td);
 
-int main()
-{
-  int pd,qflag,cid;
-  int hu,hl,tu,tl,cb;
+void displayNumber(int pd, int num) {
+    int digits[4];
+    for (int i = 3; i >= 0; i--) {
+        digits[i] = num % 10;
+        num /= 10;
+    }
+
+    for (int i = 0; i < 4; i++) {
+        for (int s = 0; s < 8; s++)
+            gpio_write(pd, SEG_PINS[s], DIGIT_CODE[digits[i]][s]);
+
+        for (int d = 0; d < 4; d++)
+            gpio_write(pd, DIGIT_PINS[d], d == i ? 0 : 1);
+
+        time_sleep(0.005);
+    }
+}
+
+void *thread(void *p){
+  int hu,hl,tu,tl,cb,cid;
   float temp,humi;
   tdata td;
-  char ans;
+
+  while(ans!='q'){
+    // データ転送の準備（処理関数のセット）
+    td.p = 0;
+    // 指定されたピンの立下りで割り込み処理が生じるように設定する
+    // edge_detection( )関数が割り込み時に呼び出される関数となる
+
+    cid = callback_ex(pd, DHT11PIN, FALLING_EDGE, edge_detection, &td);
+    if (cid < 0){
+      printf("caillback_ex が失敗しました。\n");
+      qflag = 1;
+    } else {
+      // スタート信号の作成（1回目の立下りになる）
+      set_mode(pd, DHT11PIN, PI_OUTPUT); // スタート信号の開始（解放で 1→0）
+      time_sleep(0.020);                 // 18ms 以上 30ms 以下の範囲で待つ
+      set_mode(pd, DHT11PIN, PI_INPUT);  // スタート信号の終了（0→解放で 1）
+      time_sleep(0.010); // データ転送を待つ（最大で 130us×40＝5.2ms 程度）
+
+      // データ転送の終了（処理関数のキャンセル）とチェック
+      if (callback_cancel(cid) != 0) printf("callback_cancel が失敗しました\n");
+
+      printf("立ち下がり検出回数：%d\n",td.p);
+      if (td.p != DETECTNUM){
+        printf("データ読み出しに失敗しました！\n");
+      }
+      else {
+        hu = bit_trans(&td, HUMIUPPER);
+        hl = bit_trans(&td, HUMILOWER);
+        tu = bit_trans(&td, TEMPUPPER);
+        tl = bit_trans(&td, TEMPLOWER);
+        cb = bit_trans(&td, CHECKBYTE);
+
+        if ( ((hu + hl + tu + tl) & 0xFF) != cb ){
+          printf("チェックバイトエラー！\n");
+        }
+        else {
+            // 湿度の上位と下位を結合する（仕様上は下位は常に 0）
+            humi = hu + (hl * 0.1f);
+            // 温度の上位と下位を結合（下位の最上位ビットは除く）
+            temp = tu + ((tl & 0x7F) * 0.1f);
+            // 下位の最上位ビットが 1のときは温度が氷点下を示している
+            if (tl & 0x80) temp = -temp;
+            // 最後に、湿度と温度を表示する
+            printf("湿度:%3.1f％, 温度:%2.1f℃\n",humi,temp);
+	    displayNumber(pd, (int)temp);
+            time_sleep(1.5);
+	    displayNumber(pd, (int)humi);
+	    time_sleep(1.5);
+        }
+      }
+    }
+  }
+
+  return (NULL);
+
+}
+
+int main()
+{
+ for(int i = 0; i < 8; i++) set_mode(pd, SEG_PINS[i], PI_OUTPUT);
+ for(int i = 0; i < 4; i++) set_mode(pd, DIGIT_PINS[i], PI_OUTPUT);
 
   // 最初にデーモンに接続する（NULL:localhost, NULL:default port）
   pd = pigpio_start(NULL,NULL);
@@ -81,65 +177,20 @@ int main()
   printf("+-----------------------------+\n");
   printf("注意：センサの仕様上、データの再取得には 2秒以上の間隔を開けます。\n");
 
+  pthread_create(&p1, NULL, &thread, NULL);
+
   qflag = 0;
   while(qflag == 0){
-    printf("\nDHT11 から温度と湿度を読み取る／終了する[r/q]");
-    scanf("\n%c",&ans);
-    if (ans != 'q'){
-      // データ転送の準備（処理関数のセット）
-      td.p = 0;
-      // 指定されたピンの立下りで割り込み処理が生じるように設定する
-      // edge_detection( )関数が割り込み時に呼び出される関数となる
-
-      cid = callback_ex(pd, DHT11PIN, FALLING_EDGE, edge_detection, &td);
-      if (cid < 0){
-        printf("caillback_ex が失敗しました。\n");
-        qflag = 1;
-      }
-      else {
-        // スタート信号の作成（1回目の立下りになる）
-        set_mode(pd, DHT11PIN, PI_OUTPUT); // スタート信号の開始（解放で 1→0）
-        time_sleep(0.020);                 // 18ms 以上 30ms 以下の範囲で待つ
-        set_mode(pd, DHT11PIN, PI_INPUT);  // スタート信号の終了（0→解放で 1）
-        time_sleep(0.010); // データ転送を待つ（最大で 130us×40＝5.2ms 程度）
-
-        // データ転送の終了（処理関数のキャンセル）とチェック
-        if (callback_cancel(cid) != 0) printf("callback_cancel が失敗しました\n");
-
-        printf("立ち下がり検出回数：%d\n",td.p);
-        if (td.p != DETECTNUM){
-          printf("データ読み出しに失敗しました！\n");
-        }
-        else {
-          hu = bit_trans(&td, HUMIUPPER);
-          hl = bit_trans(&td, HUMILOWER);
-          tu = bit_trans(&td, TEMPUPPER);
-          tl = bit_trans(&td, TEMPLOWER);
-          cb = bit_trans(&td, CHECKBYTE);
-
-          if ( ((hu + hl + tu + tl) & 0xFF) != cb ){
-            printf("チェックバイトエラー！\n");
-          }
-          else {
-            // 湿度の上位と下位を結合する（仕様上は下位は常に 0）
-            humi = hu + (hl * 0.1f);
-            // 温度の上位と下位を結合（下位の最上位ビットは除く）
-            temp = tu + ((tl & 0x7F) * 0.1f);
-            // 下位の最上位ビットが 1のときは温度が氷点下を示している
-            if (tl & 0x80) temp = -temp;
-            // 最後に、湿度と温度を表示する
-            printf("湿度:%3.1f％, 温度:%2.1f℃\n",humi,temp);
-          }
-        }
-        printf("データ読み出し可能になるまで 2秒お待ち下さい。\n");
-        time_sleep(2.0); // 次のデータ読み出しまでの時間間隔を確保
-      }
-    }
-    else {
-     qflag = 1;
+    printf("終了する[q]");
+    scanf("%d",&ans);
+    if (ans == 'q'){
+      qflag = 1;
+      pthread_join(p1, NULL);
     }
   }
 
+  for (int i = 0; i < 8; i++) set_mode(pd, SEG_PINS[i], PI_OUTPUT);
+  for (int i = 0; i < 4; i++) set_mode(pd, DIGIT_PINS[i], PI_OUTPUT);
   // 最後にデーモンと切断する
   pigpio_stop(pd);
   return 0;
