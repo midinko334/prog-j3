@@ -182,7 +182,7 @@ int main()
   qflag = 0;
   while(qflag == 0){
     printf("終了する[q]");
-    scanf("%d",&ans);
+    scanf("%c",&ans);
     if (ans == 'q'){
       qflag = 1;
       pthread_join(p1, NULL);
