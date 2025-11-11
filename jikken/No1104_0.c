@@ -69,7 +69,7 @@ void edge_detection(int pd, unsigned int gpio, unsigned int level, unsigned int 
 void *thread2(void *p){
     int hdigits[4],tdigits[4];
 
-  while(ans!=1){
+  while(ans!='p'){
     for (int i=1;i<=1000;i*=10) {
         tdigits[i] = (int)temp/i % 10;
     }
@@ -96,6 +96,7 @@ void *thread2(void *p){
         time_sleep(0.005);
     }
   }
+  return (NULL);
 }
 
 void *thread(void *p){
