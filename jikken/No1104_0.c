@@ -66,17 +66,15 @@ typedef struct {
 int bit_trans(tdata *td, int ofs);
 void edge_detection(int pd, unsigned int gpio, unsigned int level, unsigned int tick, void* td);
 
-void *thread(void *p){
+void *thread2(void *p){
     int hdigits[4],tdigits[4];
 
   while(ans!=1){
-    for (int i = 3; i >= 0; i--) {
-        tdigits[i] = temp % 10;
-        temp /= 10;
+    for (int i=1;i<=1000;i*=10) {
+        tdigits[i] = (int)temp/i % 10;
     }
-    for (int i = 3; i >= 0; i--) {
-        hdigits[i] = humi % 10;
-        humi /= 10;
+    for (int i=1;i<=1000;i*=10) {
+        hdigits[i] = (int)humi/i % 10;
     }
 
     for(int k=0;k<75;k++) for (int i=0;i<4;i++) {
