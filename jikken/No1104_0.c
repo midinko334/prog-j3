@@ -8,8 +8,10 @@
 #include <pthread.h>
 
 int pd,qflag;
-pthread_t p1;
+pthread_t p1,p2;
 char ans;
+float temp,humi;
+
 int SEG_PINS[8] = {5,6,13,19,12,16,20,21};
 int DIGIT_PINS[4] = {4,17,27,22};
 int DIGIT_CODE[10][8] = {
@@ -64,27 +66,42 @@ typedef struct {
 int bit_trans(tdata *td, int ofs);
 void edge_detection(int pd, unsigned int gpio, unsigned int level, unsigned int tick, void* td);
 
-void displayNumber(int pd, int num) {
-    int digits[4];
+void *thread(void *p){
+    int hdigits[4],tdigits[4];
+
+  while(ans!=1){
     for (int i = 3; i >= 0; i--) {
-        digits[i] = num % 10;
-        num /= 10;
+        tdigits[i] = temp % 10;
+        temp /= 10;
+    }
+    for (int i = 3; i >= 0; i--) {
+        hdigits[i] = humi % 10;
+        humi /= 10;
     }
 
-    for (int i = 0; i < 4; i++) {
-        for (int s = 0; s < 8; s++)
-            gpio_write(pd, SEG_PINS[s], DIGIT_CODE[digits[i]][s]);
+    for(int k=0;k<75;k++) for (int i=0;i<4;i++) {
+        for (int s=0;s<8;s++)
+            gpio_write(pd, SEG_PINS[s], DIGIT_CODE[tdigits[i]][s]);
 
-        for (int d = 0; d < 4; d++)
+        for (int d=0;d<4;d++)
             gpio_write(pd, DIGIT_PINS[d], d == i ? 0 : 1);
 
         time_sleep(0.005);
     }
+    for(int k=0;k<75;k++) for (int i=0;i<4;i++) {
+        for (int s=0;s<8;s++)
+            gpio_write(pd, SEG_PINS[s], DIGIT_CODE[hdigits[i]][s]);
+
+        for (int d=0;d<4;d++)
+            gpio_write(pd, DIGIT_PINS[d], d == i ? 0 : 1);
+
+        time_sleep(0.005);
+    }
+  }
 }
 
 void *thread(void *p){
   int hu,hl,tu,tl,cb,cid;
-  float temp,humi;
   tdata td;
 
   while(ans!='q'){
@@ -132,10 +149,7 @@ void *thread(void *p){
             if (tl & 0x80) temp = -temp;
             // 最後に、湿度と温度を表示する
             printf("湿度:%3.1f％, 温度:%2.1f℃\n",humi,temp);
-	    displayNumber(pd, (int)temp);
-            time_sleep(1.5);
-	    displayNumber(pd, (int)humi);
-	    time_sleep(1.5);
+	    time_sleep(3);
         }
       }
     }
@@ -180,14 +194,18 @@ int main()
   printf("注意：センサの仕様上、データの再取得には 2秒以上の間隔を開けます。\n");
 
   pthread_create(&p1, NULL, &thread, NULL);
+  pthread_create(&p2, NULL, &thread2, NULL);
 
   qflag = 0;
   while(qflag == 0){
     printf("終了する[q]");
     scanf("%c",&ans);
     if (ans == 'q'){
+     printf("終了処理中です\n");
       qflag = 1;
+      time_sleep(5);
       pthread_join(p1, NULL);
+      pthread_join(p2, NULL);
     }
   }
 
