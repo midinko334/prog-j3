@@ -6,15 +6,12 @@
 #include <pigpiod_if2.h>
 #include <unistd.h>
 #include <pthread.h>
-
 int pd,qflag;
-pthread_t p1,p2;
+pthread_t p1;
 char ans;
-float temp,humi;
-
 int SEG_PINS[8] = {5,6,13,19,12,16,20,21};
 int DIGIT_PINS[4] = {4,17,27,22};
-int DIGIT_CODE[11][8] = {
+int DIGIT_CODE[10][8] = {
   {0,0,0,0,0,0,1,1},//0
   {1,0,0,1,1,1,1,1},//1
   {0,0,1,0,0,1,0,1},//2
@@ -24,9 +21,7 @@ int DIGIT_CODE[11][8] = {
   {0,1,0,0,0,0,0,1},//6
   {0,0,0,1,1,1,1,1},//7
   {0,0,0,0,0,0,0,1},//8
-  {0,0,0,0,1,0,0,1},//9
-  {1,1,1,1,1,1,0,1},//-
-  {0,0,0,0,1,1,0,0} //E
+  {0,0,0,0,1,0,0,1} //9
 };
 
 // コンパイルと実行方法
@@ -68,43 +63,33 @@ typedef struct {
 int bit_trans(tdata *td, int ofs);
 void edge_detection(int pd, unsigned int gpio, unsigned int level, unsigned int tick, void* td);
 
-void *thread2(void *p){
-    int hdigits[4],tdigits[4];
-
-  while(ans!='p'){
-    if(temp<-99.9||temp>999.9) for(int i=0;i<4;i++) tdgits[i]=11;
-    else for (int i=1;i<=1000;i*=10) {
-        tdigits[i] = (int)(temp*10)/i % 10;
-    }
-    if(humi<-99.9||humi>999.9) for(int i=0;i<4;i++) humi[i]=11;
-    else for (int i=1;i<=1000;i*=10) {
-        hdigits[i] = (int)(humi*10)/i % 10;
+void displayNumber(int pd, int num) {
+    int digits[4];
+    for (int i = 3; i >= 0; i--) {
+        digits[i] = num % 10;
+        num /= 10;
     }
 
-    for(int k=0;k<75;k++) for (int i=0;i<4;i++) {
-        for (int s=0;s<8;s++)
-            gpio_write(pd, SEG_PINS[s], DIGIT_CODE[tdigits[i]][s]);
-
-        for (int d=0;d<4;d++)
-            gpio_write(pd, DIGIT_PINS[d], d == i ? 0 : 1);
-
-        time_sleep(0.005);
-    }
-    for(int k=0;k<75;k++) for (int i=0;i<4;i++) {
-        for (int s=0;s<8;s++)
-            gpio_write(pd, SEG_PINS[s], DIGIT_CODE[hdigits[i]][s]);
-
-        for (int d=0;d<4;d++)
-            gpio_write(pd, DIGIT_PINS[d], d == i ? 0 : 1);
+  for(int u=0;u<64;u++){
+    for (int i = 0; i < 4; i++) {
+        for (int d = 0; d < 4; d++){
+          if(d==i) gpio_write(pd, DIGIT_PINS[d], 1);
+	  else gpio_write(pd, DIGIT_PINS[d], 0);
+	}
+        for (int s = 0; s < 7; s++){
+	  gpio_write(pd, SEG_PINS[s], DIGIT_CODE[digits[i]][s]);
+	}
+	if (i==2) gpio_write(pd, SEG_PINS[7], 0);
+ 	else gpio_write(pd, SEG_PINS[7], 1);
 
         time_sleep(0.005);
     }
   }
-  return (NULL);
 }
 
 void *thread(void *p){
   int hu,hl,tu,tl,cb,cid;
+  float temp,humi;
   tdata td;
 
   while(ans!='q'){
@@ -130,7 +115,6 @@ void *thread(void *p){
       printf("立ち下がり検出回数：%d\n",td.p);
       if (td.p != DETECTNUM){
         printf("データ読み出しに失敗しました！\n");
-	time_sleep(3);
       }
       else {
         hu = bit_trans(&td, HUMIUPPER);
@@ -141,7 +125,6 @@ void *thread(void *p){
 
         if ( ((hu + hl + tu + tl) & 0xFF) != cb ){
           printf("チェックバイトエラー！\n");
-	  time_sleep(3);
         }
         else {
             // 湿度の上位と下位を結合する（仕様上は下位は常に 0）
@@ -152,9 +135,12 @@ void *thread(void *p){
             if (tl & 0x80) temp = -temp;
             // 最後に、湿度と温度を表示する
             printf("湿度:%3.1f％, 温度:%2.1f℃\n",humi,temp);
-	    time_sleep(3);
         }
       }
+      displayNumber(pd, (int)(temp*10));
+      for (int i = 0; i < 8; i++) gpio_write(pd, SEG_PINS[i], 1);
+      displayNumber(pd, (int)(humi*10));
+      for (int i = 0; i < 8; i++) gpio_write(pd, SEG_PINS[i], 1);
     }
   }
 
@@ -197,21 +183,19 @@ int main()
   printf("注意：センサの仕様上、データの再取得には 2秒以上の間隔を開けます。\n");
 
   pthread_create(&p1, NULL, &thread, NULL);
-  pthread_create(&p2, NULL, &thread2, NULL);
 
   qflag = 0;
   while(qflag == 0){
     printf("終了する[q]");
     scanf("%c",&ans);
     if (ans == 'q'){
-     printf("終了処理中です\n");
       qflag = 1;
-      time_sleep(5);
       pthread_join(p1, NULL);
-      pthread_join(p2, NULL);
     }
   }
-
+            
+  for (int i = 0; i < 8; i++) gpio_write(pd, SEG_PINS[i], 0);
+  for (int i = 0; i < 4; i++) gpio_write(pd, DIGIT_PINS[i], 0);
   for (int i = 0; i < 8; i++) set_mode(pd, SEG_PINS[i], PI_OUTPUT);
   for (int i = 0; i < 4; i++) set_mode(pd, DIGIT_PINS[i], PI_OUTPUT);
   // 最後にデーモンと切断する
