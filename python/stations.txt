@@ -1,0 +1,10 @@
+Tokyo：Shinbashi, Shinagawa, Ueno, Shin-Nihonbashi
+Shinagawa：Shinbashi, Tokyo, Nishioi, Shin-Yokohama
+Shin-Yokohama：Nagoya, Shinagawa
+Nagoya：Shin-Yokohama
+Ueno：Omiya, Tokyo
+Omiya：Ueno, Sendai
+Sendai：Omiya
+Nishioi：Shinagawa
+Shinbashi：Shinagawa, Tokyo
+Shin-Nihonbashi：Tokyo
