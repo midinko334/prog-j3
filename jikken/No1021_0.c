@@ -5,7 +5,7 @@
 #define PWMPIN 18
 
 #define SERVOCENTER 1450    // 中央(0°)
-#define SERVOMAX   2400     // +90°
+#define SERVOMAX   2200     // +90°
 #define SERVOMIN    500     // -90°
 #define PWMFREQ      50     // 50Hz(周期20ms)
 
